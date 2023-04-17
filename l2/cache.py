@@ -5,8 +5,8 @@ class Cache:
     def __init__(self, n, k) -> None:
         self.cache = []
         self.pages = []
-        self.n = 100
-        self.k = 10
+        self.n = n
+        self.k = k
 
     def request_page(self, p) -> int:
         return 1
@@ -56,7 +56,7 @@ class CacheLFU(Cache):
 
     def __init__(self, n, k) -> None:
         Cache.__init__(self, n, k)
-        self.num_accesses = [0]*(n+1)
+        self.num_accesses = [0]*(100+1)
 
     def find_min(self) -> int:
         id = self.cache[0]
@@ -151,34 +151,35 @@ def generate_distribution(type, samples, pages):
                              p=[1/pages for _ in range(1, pages+1)], size=(samples))
     if type == 'h':
         return random.choice([i for i in range(1, pages+1)],
-                             p=[1/(i*get_h100()) for i in range(1, pages+1)],
+                             p=[1/(i*get_h(pages)) for i in range(1, pages+1)],
                              size=(samples))
     if type == 'h2':
         return random.choice([i for i in range(1, pages+1)],
-                             p=[1/(i**2*get_2h100()) for i in range(1, pages+1)], size=(samples))
+                             p=[1/(i**2*get_2h(pages)) for i in range(1, pages+1)], size=(samples))
     if type == 'g':
         return random.choice([i for i in range(1, pages+1)],
                              p=[1/2**i for i in range(1, pages)]+[1/2**(pages-1)], size=(samples))
 
 
-def get_h100():
+def get_h(pages=100):
     h100 = 0
     for i in range(1, 100+1):
         h100 += 1/i
     return h100
 
 
-def get_2h100():
+def get_2h(pages=100):
     h100 = 0
-    for i in range(1, 100+1):
+    for i in range(1, pages+1):
         h100 += 1/i**2
     return h100
 
-n = 100
-k = 20
+# n = 100
+# k = 20
+ns = [20, 30, 40, 50, 60, 70, 80, 90, 100]
 
-samples = [n,500, 1000]
-iterations = 10**3
+samples = [100,500, 1000]
+iterations = 10**2
 dists = ['g','u','h','h2']
 orgs = ['fifo','fwf','lru','lfu','rand','rma']
 
@@ -188,65 +189,75 @@ outcome = {}
 for d in dists:
     outcome[d] = {}
     for o in orgs:
-        outcome[d][o] = []
-for s in samples:
-    for d in dists:
-        o = []
-        for i in range(iterations):
-            pages_seq = generate_distribution(d,s,100)
+        outcome[d][o] = {}
+        for n in ns:
+            outcome[d][o][n] = []
 
-            caches = [CacheFIFO(n, k),CacheFWF(n, k),CacheLRU(n, k),CacheLFU(n, k),CacheRandom(n, k), CacheRMA(n, k)]
+import json 
 
-            for c in caches:
-                o.append([])
-                cnt = 0
-                for u in pages_seq:
-                    cnt += c.request_page(u)
-                o[-1].append(cnt)
+for n in ns:
+    print(n)
+    for k in range(n//10,n//5+1):
+        for d in dists:
+            o = []
+            for i in range(iterations):
+                pages_seq = generate_distribution(d,n,n)
 
+                caches = [CacheFIFO(n, k),CacheFWF(n, k),CacheLRU(n, k),CacheLFU(n, k),CacheRandom(n, k),CacheRMA(n, k)]
 
-        print(f'Distribution: {d}')
-        print(f'Samples: {s}')
-        print(f'FIFO: {mean(o[0])}')
-        print(f'FWF:  {mean(o[1])}')
-        print(f'LRU:  {mean(o[2])}')
-        print(f'LFU:  {mean(o[3])}')
-        print(f'Rand: {mean(o[4])}')
-        print(f'RMA:  {mean(o[5])}')
-
-        outcome[d]['fifo'].append((s,mean(o[0])))
-        outcome[d]['fwf'].append((s,mean(o[1])))
-        outcome[d]['lru'].append((s,mean(o[2])))
-        outcome[d]['lfu'].append((s,mean(o[3])))
-        outcome[d]['rand'].append((s,mean(o[4])))
-        outcome[d]['rma'].append((s,mean(o[5])))
+                for c in caches:
+                    o.append([])
+                    cnt = 0
+                    for u in pages_seq:
+                        cnt += c.request_page(u)
+                    o[-1].append(cnt)
 
 
-for d in dists:
-    for o in orgs:
-        plt.plot([n[0]for n in outcome[d][o]], [e[1]
-            for e in outcome[d][o]], 'o', label=o)
+            # print(f'Distribution: {d}')
+            # print(f'n:{n} k{k}')
+            # print(f'FIFO: {mean(o[0])}')
+            # print(f'FWF:  {mean(o[1])}')
+            # print(f'LRU:  {mean(o[2])}')
+            # print(f'LFU:  {mean(o[3])}')
+            # print(f'Rand: {mean(o[4])}')
+            # print(f'RMA:  {mean(o[5])}')
+            
+                
+            outcome[d]['fifo'][n].append((k,mean(o[0])))
+            outcome[d]['fwf'][n].append((k,mean(o[1])))
+            outcome[d]['lru'][n].append((k,mean(o[2])))
+            outcome[d]['lfu'][n].append((k,mean(o[3])))
+            outcome[d]['rand'][n].append((k,mean(o[4])))
+            outcome[d]['rma'][n].append((k,mean(o[5])))
+
+json_object = json.dumps(outcome, indent = 2) 
+print(json_object)
+
+# for d in dists:
+#     for o in orgs:
+#         plt.plot([n[0]for n in outcome[d][o]], [e[1]
+#             for e in outcome[d][o]], 'o', label=o)
     
-    plt.legend()
-    plt.title(f"Distribution: {d}")
-    plt.xscale('log')
-    plt.grid()
-    plt.ylabel("Average cost")
-    plt.xlabel("Number of samples")
-    plt.savefig(f'{d}.png')
-    plt.clf()
+#     plt.legend()
+#     plt.title(f"Distribution: {d}")
+#     plt.xscale('log')
+#     plt.grid()
+#     plt.ylabel("Average cost")
+#     plt.xlabel("Number of samples")
+#     plt.savefig(f'{d}.png')
+#     plt.clf()
 
-orgs2 = ['fifo','lru','rand','rma']
-for d in dists:
-    for o in orgs2:
-        plt.plot([n[0]for n in outcome[d][o]], [e[1]
-            for e in outcome[d][o]], 'o', label=o)
+# orgs2 = ['fifo','lru','rand','rma']
+# for d in dists:
+#     for o in orgs2:
+#         plt.plot([n[0]for n in outcome[d][o]], [e[1]
+#             for e in outcome[d][o]], 'o', label=o)
     
-    plt.legend()
-    plt.title(f"Distribution: {d}")
-    plt.xscale('log')
-    plt.grid()
-    plt.ylabel("Average cost")
-    plt.xlabel("Number of samples")
-    plt.savefig(f'mid_{d}.png')
-    plt.clf()
+#     plt.legend()
+#     plt.title(f"Distribution: {d}")
+#     plt.xscale('log')
+#     plt.grid()
+#     plt.ylabel("Average cost")
+#     plt.xlabel("Number of samples")
+#     plt.savefig(f'mid_{d}.png')
+#     plt.clf()
