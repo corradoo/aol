@@ -1,0 +1,24 @@
+g 
+        next_fit        -> c=1.2951
+        first_fit       -> c=1.1307
+        best_fit        -> c=1.1228
+        worst_fit       -> c=1.1691
+        random_fit      -> c=1.1388
+u 
+        next_fit        -> c=1.2835
+        first_fit       -> c=1.1653
+        best_fit        -> c=1.1615
+        worst_fit       -> c=1.1810
+        random_fit      -> c=1.1683
+h 
+        next_fit        -> c=1.2911
+        first_fit       -> c=1.1575
+        best_fit        -> c=1.1523
+        worst_fit       -> c=1.1807
+        random_fit      -> c=1.1614
+h2 
+        next_fit        -> c=1.2987
+        first_fit       -> c=1.1365
+        best_fit        -> c=1.1280
+        worst_fit       -> c=1.1728
+        random_fit      -> c=1.1430
